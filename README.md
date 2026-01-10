@@ -183,19 +183,5 @@ npm run dev
 
 ---
 
-## 🚧 Future Improvements
-
-* 📍 Geo‑location & device analytics
-* 🔁 Persistent login using refresh tokens
-* 🧩 Custom alias support
-* 📈 Graph‑based analytics dashboard
-
----
-
-## 📜 License
-
-This project is open‑source and free to use for learning and development purposes.
-
----
 
 
