@@ -12,4 +12,5 @@ db.connect((err) => {
   console.log('MySQL Connected...');
 });
 
-module.exports = db; // এটি না দিলে require('./db') কাজ করবে না
+// Export the connection instance so it can be used in other files via require('./db')
+module.exports = db;

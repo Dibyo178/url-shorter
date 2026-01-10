@@ -1,165 +1,224 @@
-import React, { useState } from 'react';
-import { 
-Link2, Copy, Check, LayoutDashboard, 
-User, Globe, Zap, LogOut, ArrowRight, MousePointerClick 
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Copy, Trash2, LayoutDashboard, LogOut, Link as LinkIcon } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
-const [longUrl, setLongUrl] = useState('');
-const [shortenedUrl, setShortenedUrl] = useState(''); 
-const [copied, setCopied] = useState(false);
-const [loading, setLoading] = useState(false);
+    const [longUrl, setLongUrl] = useState('');
+    const [links, setLinks] = useState([]);
+    const [user, setUser] = useState({ name: '', email: '' });
+    const [showDashboard, setShowDashboard] = useState(false);
+    const navigate = useNavigate();
 
-  // ১, ২ ও ৩. URL Shortening & unique code logic
-  const handleShorten = (e) => {
-    e.preventDefault();
-    if (!longUrl) return;
-    
-    setLoading(true);
-    
-    // ৫ সেকেন্ড পর রেজাল্ট দেখানোর অভিনয় (Simulation)
-    setTimeout(() => {
-      // ৬-৮ ক্যারেক্টারের র‍্যান্ডম কোড জেনারেশন
-      const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      const codeLength = Math.floor(Math.random() * (8 - 6 + 1)) + 6;
-      let code = '';
-      for (let i = 0; i < codeLength; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      
-      // ৪. সম্পূর্ণ শর্ট URL ডিসপ্লে
-      setShortenedUrl(`https://ziplink.co/${code}`);
-      setLoading(false);
-    }, 800);
-  };
-
-  // ৫. Copy to clipboard
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(shortenedUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="min-h-screen bg-[#fcfcfd]">
-      {/* --- PREMIMUM NAVBAR --- */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-200">
-              <Link2 className="text-white h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900">ZipLink</span>
-          </div>
-
-          {/* Nav Links & Profile */}
-          <div className="flex items-center gap-4 md:gap-8">
-            <button className="hidden sm:flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
-              <LayoutDashboard size={18} />
-              Dashboard
-            </button>
-
-            <div className="flex items-center gap-3 border-l pl-6 border-slate-200">
-              <div className="text-right hidden md:block">
-                <p className="text-sm font-bold text-slate-900 leading-none">Mehedi Hasan</p>
-                <p className="text-[11px] font-bold text-blue-500 uppercase mt-1 tracking-wider font-mono">12/100 Links Used</p>
-              </div>
-              
-              {/* Avatar Icon */}
-              <div className="h-10 w-10 bg-slate-100 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-blue-50 hover:text-blue-600 cursor-pointer transition-all">
-                <User size={20} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* --- HERO SECTION --- */}
-      <main className="max-w-5xl mx-auto px-6 pt-20 pb-12">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-6 border border-blue-100">
-            <Zap size={14} className="fill-current" /> Fast & Reliable URL Shortener
-          </div>
-          <h1 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight leading-tight">
-            One tiny link, <br />
-            <span className="text-blue-600">infinite possibilities.</span>
-          </h1>
-          <p className="text-slate-500 text-lg md:text-xl max-w-2xl mx-auto">
+    useEffect(() => {
+        // 1. Retrieve user data and token from sessionStorage
+        const name = sessionStorage.getItem('userName');
+        const email = sessionStorage.getItem('userEmail');
+        const token = sessionStorage.getItem('token');
+        
+        // Redirect to login if no token is found
+        if (!token) {
+            navigate('/');
+        } else {
+            // 2. Set user state with fallback values for undefined data
+            const currentUser = { 
+                name: name && name !== "undefined" ? name : "User", 
+                email: email && email !== "undefined" ? email : "No Email Provided" 
+            };
+            setUser(currentUser);
             
-          </p>
-        </div>
+            // 3. Fetch user-specific links if email is valid
+            if (email && email !== "undefined") {
+                fetchUserLinks(email);
+            }
+        }
+    }, [navigate]);
 
-        {/* --- URL INPUT SECTION (Bitly Style) --- */}
-        <div className="relative max-w-4xl mx-auto">
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2.5rem] blur opacity-20"></div>
-          
-          <div className="relative bg-white rounded-[2rem] shadow-xl border border-slate-100 p-2">
-            <form onSubmit={handleShorten} className="flex flex-col md:flex-row gap-2">
-              <div className="flex-1 relative">
-                <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none text-slate-400">
-                  <Globe size={20} />
-                </div>
-                <input
-                  type="url"
-                  required
-                  placeholder="Paste your long URL here..."
-                  className="w-full pl-14 pr-6 py-5 bg-transparent rounded-2xl outline-none text-slate-800 text-lg placeholder:text-slate-400"
-                  value={longUrl}
-                  onChange={(e) => setLongUrl(e.target.value)}
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-10 py-5 rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-70"
-              >
-                {loading ? 'Shortening...' : 'Shorten'}
-                <ArrowRight size={20} />
-              </button>
-            </form>
-          </div>
+    const fetchUserLinks = async (email) => {
+        try {
+            const res = await axios.get(`http://localhost:5001/api/user-links?email=${email}`);
+            if (res.data.success) {
+                setLinks(res.data.links);
+            }
+        } catch (err) {
+            console.error("Failed to load links");
+        }
+    };
 
-          {/* --- RESULT DISPLAY --- */}
-          {shortenedUrl && (
-            <div className="mt-8 animate-in fade-in slide-in-from-top-4 duration-500">
-              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4 overflow-hidden">
-                  <div className="h-12 w-12 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm flex-shrink-0">
-                    <MousePointerClick size={24} />
-                  </div>
-                  <div className="overflow-hidden">
-                    <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mb-0.5">Your Tiny URL</p>
-                    <p className="text-xl font-bold text-slate-800 truncate">{shortenedUrl}</p>
-                  </div>
+    const handleShorten = async (e) => {
+        e.preventDefault();
+        // Ensure user is authenticated before shortening
+        if (!user.email || user.email === "No Email Provided") {
+            return toast.error("Session expired. Please login again.");
+        }
+
+        try {
+            const res = await axios.post('http://localhost:5001/api/shorten', {
+                long_url: longUrl,
+                user_email: user.email
+            });
+            if (res.data.success) {
+                toast.success("Link Shortened!");
+                setLongUrl('');
+                fetchUserLinks(user.email);
+            }
+        } catch (err) {
+            const errorMsg = err.response?.data?.message || "Error creating link";
+            toast.error(errorMsg);
+        }
+    };
+
+    // --- Clipboard Copy Logic ---
+    const copyToClipboard = (shortCode) => {
+        const fullLink = `http://localhost:5001/${shortCode}`;
+        navigator.clipboard.writeText(fullLink);
+        toast.success("Link copied to clipboard!", {
+            style: { background: '#1e293b', color: '#fff' },
+            icon: '📋'
+        });
+    };
+
+    const deleteLink = async (id) => {
+        if (!window.confirm("Delete this link?")) return;
+        try {
+            await axios.delete(`http://localhost:5001/api/delete-link/${id}`);
+            fetchUserLinks(user.email);
+            toast.success("Deleted!");
+        } catch (err) {
+            toast.error("Failed to delete");
+        }
+    };
+
+    const handleLogout = () => {
+        sessionStorage.clear();
+        navigate('/');
+    };
+
+    return (
+        <div className="min-h-screen bg-[#0f172a] text-white font-sans">
+            <Toaster position="top-center" />
+            
+            {/* --- Navbar Section --- */}
+            <nav className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center bg-slate-900/40 backdrop-blur-md sticky top-0 z-50 border-b border-slate-800">
+                <div className="flex items-center gap-10">
+                    <div className="flex items-center gap-2 text-blue-500 font-bold text-2xl tracking-tighter cursor-pointer" onClick={() => setShowDashboard(false)}>
+                        <LinkIcon className="rotate-45" /> URL Shortener Service
+                    </div>
+                    
+                    <button 
+                        onClick={() => setShowDashboard(!showDashboard)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${showDashboard ? 'bg-blue-600 text-white border-blue-500' : 'bg-blue-600/10 text-blue-400 border-blue-500/20 hover:bg-blue-600/20'}`}
+                    >
+                        <LayoutDashboard size={18} />
+                        <span className="font-semibold text-sm">Dashboard</span>
+                    </button>
                 </div>
-                
-                <button
-                  onClick={copyToClipboard}
-                  className={`flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold transition-all ${
-                    copied 
-                    ? 'bg-green-500 text-white shadow-lg shadow-green-200' 
-                    : 'bg-slate-900 text-white hover:bg-slate-800 shadow-lg shadow-slate-200'
-                  }`}
-                >
-                  {copied ? <Check size={20} /> : <Copy size={20} />}
-                  {copied ? 'Copied' : 'Copy URL'}
-                </button>
-              </div>
+
+                <div className="flex items-center gap-6">
+                    <div className="hidden md:flex flex-col items-end">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Usage</span>
+                            <span className="text-sm font-bold text-blue-400">{links.length}/100</span>
+                        </div>
+                        <div className="w-24 h-1 bg-slate-800 rounded-full mt-1 overflow-hidden">
+                            <div 
+                                className="h-full bg-blue-500 transition-all duration-500" 
+                                style={{ width: `${Math.min((links.length / 100) * 100, 100)}%` }}
+                            ></div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 border-l border-slate-800 pl-6">
+                        <div className="bg-blue-600 h-10 w-10 rounded-full flex items-center justify-center font-bold text-lg shadow-lg shadow-blue-500/20 uppercase">
+                            {user.name.charAt(0)}
+                        </div>
+                        <div className="text-left hidden lg:block">
+                            <p className="text-sm font-bold leading-none text-white uppercase tracking-tight">{user.name}</p>
+                            <p className="text-[10px] text-blue-400/70 mt-1 font-medium italic">{user.email}</p>
+                        </div>
+                        <button onClick={handleLogout} className="ml-2 p-2 text-slate-400 hover:text-red-500 transition-all">
+                            <LogOut size={20} />
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <div className="max-w-6xl mx-auto p-6">
+                {/* --- Input Form Section --- */}
+                <div className="text-center mt-12 mb-12">
+                    <h1 className="text-4xl font-black mb-6">Shorten Your <span className="text-blue-500">Links</span></h1>
+                    <form onSubmit={handleShorten} className="flex gap-2 max-w-2xl mx-auto bg-slate-900 border border-slate-800 p-2 rounded-2xl shadow-xl focus-within:border-blue-500/50 transition-all">
+                        <input 
+                            type="url" required value={longUrl}
+                            onChange={(e) => setLongUrl(e.target.value)}
+                            placeholder="Paste your long link here..."
+                            className="flex-1 bg-transparent p-4 outline-none"
+                        />
+                        <button className="bg-blue-600 hover:bg-blue-700 px-8 py-4 rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-blue-600/20">
+                            Shorten
+                        </button>
+                    </form>
+                </div>
+
+                {/* --- Dashboard Table View --- */}
+                {showDashboard ? (
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <div className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
+                             <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-slate-800/50 text-xs text-slate-400 uppercase font-black tracking-widest">
+                                        <tr>
+                                            <th className="p-5">Original URL</th>
+                                            <th className="p-5">Short URL</th>
+                                            <th className="p-5 text-center">Clicks</th>
+                                            <th className="p-5">Date</th>
+                                            <th className="p-5 text-right">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800">
+                                        {links.map((link) => (
+                                            <tr key={link.id} className="hover:bg-slate-800/30 transition-colors group">
+                                                <td className="p-5 max-w-xs truncate text-sm text-slate-300" title={link.long_url}>{link.long_url}</td>
+                                                <td className="p-5">
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-blue-400 font-mono text-sm">
+                                                            http://localhost:5001/{link.short_code}
+                                                        </span>
+                                                        <button 
+                                                            onClick={() => copyToClipboard(link.short_code)}
+                                                            className="p-1.5 bg-slate-800 rounded-md text-slate-400 hover:text-white hover:bg-blue-600 transition-all"
+                                                            title="Copy Link"
+                                                        >
+                                                            <Copy size={14} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td className="p-5 text-center">
+                                                    <span className="bg-slate-800 px-3 py-1 rounded-lg text-xs font-bold text-blue-400">{link.clicks}</span>
+                                                </td>
+                                                <td className="p-5 text-slate-500 text-xs">{new Date(link.created_at).toLocaleDateString()}</td>
+                                                <td className="p-5 text-right">
+                                                    <button onClick={() => deleteLink(link.id)} className="text-slate-500 hover:text-red-500 p-2 transition-colors">
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                             </div>
+                        </div>
+                    </div>
+                ) : (
+                    // Default Empty State View
+                    <div className="text-center py-20 bg-slate-900/20 rounded-3xl border border-dashed border-slate-800">
+                        <p className="text-slate-500">Click on <b>Dashboard</b> to manage your existing links</p>
+                    </div>
+                )}
             </div>
-          )}
         </div>
-
-        {/* --- FOOTER INFO --- */}
-        <div className="mt-16 text-center">
-            <p className="text-slate-400 text-sm font-medium">
-                By shortening, you agree to our <span className="text-slate-600 underline cursor-pointer">Terms of Service</span>
-            </p>
-        </div>
-      </main>
-    </div>
-  );
+    );
 };
 
 export default HomePage;

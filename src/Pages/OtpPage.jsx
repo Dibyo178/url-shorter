@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ShieldCheck, ArrowRight, RefreshCcw } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
-import axios from 'axios'; // axios ইমপোর্ট করা হয়েছে
+import axios from 'axios'; 
 
 const OtpPage = () => {
   const [otp, setOtp] = useState('');
@@ -11,15 +11,16 @@ const OtpPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // LoginPage থেকে পাঠানো ইমেইল রিসিভ করা
+  // Retrieve email passed from the LoginPage state
   const email = location.state?.email;
 
   useEffect(() => {
-    // যদি ইমেইল না থাকে (সরাসরি ইউআরএল দিয়ে ঢুকলে) তবে লগইন পেজে পাঠিয়ে দিবে
+    // Redirect to login if email is missing (e.g., direct URL access)
     if (!email) {
       navigate('/login');
     }
 
+    // Initialize countdown timer for resending OTP
     const interval = setInterval(() => {
       setTimer((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
@@ -28,6 +29,8 @@ const OtpPage = () => {
 
   const handleVerify = async (e) => {
     e.preventDefault();
+    
+    // Basic validation for 6-digit OTP
     if (otp.length < 6) {
       return toast.error("Please enter 6-digit OTP");
     }
@@ -36,8 +39,8 @@ const OtpPage = () => {
     const loadingToast = toast.loading('Verifying your code...');
 
     try {
-      // ব্যাকএন্ড এপিআই কল
-      const res = await axios.post('http://localhost:5000/api/verify-otp', {
+      // Backend API call for OTP verification
+      const res = await axios.post('http://localhost:5001/api/verify-otp', {
         email: email,
         otp: otp
       });
@@ -46,12 +49,12 @@ const OtpPage = () => {
         toast.dismiss(loadingToast);
         toast.success("Identity Verified Successfully!");
 
-        // --- সেশন স্টোরেজে ডেটা সেভ করা ---
+        // Save authentication data to sessionStorage for the Home session
         sessionStorage.setItem('token', res.data.token);
         sessionStorage.setItem('userName', res.data.userName);
         sessionStorage.setItem('userEmail', res.data.userEmail);
 
-        // ১.৫ সেকেন্ড পর হোমপেজে পাঠানো
+        // Redirect to homepage after successful verification
         setTimeout(() => navigate('/home'), 1500);
       }
     } catch (err) {
@@ -66,6 +69,7 @@ const OtpPage = () => {
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4">
       <Toaster position="top-center" />
       
+      {/* Decorative Background Glows */}
       <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px]"></div>
       <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-500/10 rounded-full blur-[100px]"></div>
 
@@ -88,6 +92,7 @@ const OtpPage = () => {
               type="text"
               maxLength="6"
               value={otp}
+              // Only allow numeric input
               onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
               placeholder="0 0 0 0 0 0"
               className="w-full bg-slate-800/50 border border-slate-700 rounded-2xl py-4 text-center text-3xl font-bold tracking-[0.5em] text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all placeholder:text-slate-600 shadow-inner"

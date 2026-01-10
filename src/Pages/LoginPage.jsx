@@ -13,41 +13,48 @@ const LoginPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  // ১. লোডিং টোস্টার শুরু করুন
-  const loadingToast = toast.loading('Sending verification email...');
-
-  try {
-    const res = await axios.post('http://localhost:5000/api/register', formData);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     
-    if (res.data.success) {
-      // ২. লোডিং বন্ধ করে সাকসেস টোস্টার দেখান
-      toast.dismiss(loadingToast);
-      toast.success(res.data.message, {
-        duration: 4000,
-        position: 'top-center',
-      });
+    // 1. Determine endpoint based on state (Login or Registration)
+    const endpoint = isLogin ? '/api/login' : '/api/register';
+    const loadingMsg = isLogin ? 'Signing in...' : 'Sending verification email...';
+    const loadingToast = toast.loading(loadingMsg);
 
-      // ৩. ৩ সেকেন্ড পর ওটিপি পেজে পাঠান
-      setTimeout(() => {
-        navigate('/verify-otp', { state: { email: formData.email } });
-      }, 1500);
+    try {
+      const res = await axios.post(`http://localhost:5001${endpoint}`, formData);
+      
+      if (res.data.success) {
+        toast.dismiss(loadingToast);
+        
+        if (isLogin) {
+          // --- Save user data to sessionStorage on successful login ---
+          sessionStorage.setItem('token', res.data.token);
+          sessionStorage.setItem('userName', res.data.userName);
+          sessionStorage.setItem('userEmail', formData.email); 
+          
+          toast.success('Login Successful!');
+          setTimeout(() => navigate('/home'), 1000);
+        } else {
+          // --- Redirect to OTP verification page on successful registration ---
+          toast.success('OTP sent to your email!');
+          setTimeout(() => {
+            navigate('/verify-otp', { state: { email: formData.email } });
+          }, 1500);
+        }
+      }
+    } catch (err) {
+      toast.dismiss(loadingToast);
+      const errorMsg = err.response?.data?.message || 'Authentication failed!';
+      toast.error(errorMsg);
     }
-  } catch (err) {
-    // ৪. এরর হলে লোডিং বন্ধ করে এরর টোস্টার দেখান
-    toast.dismiss(loadingToast);
-    const errorMsg = err.response?.data?.message || 'Connection failed!';
-    toast.error(errorMsg);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-4 font-sans">
       <Toaster position="top-center" />
       
-      {/* Background Glow */}
+      {/* Background Decorative Glow */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
           <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl"></div>
           <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-600/10 rounded-full blur-3xl"></div>
@@ -56,6 +63,9 @@ const handleSubmit = async (e) => {
       <div className="max-w-md w-full relative">
         <div className="bg-slate-900/50 backdrop-blur-xl rounded-3xl shadow-2xl border border-slate-800 p-8 relative overflow-hidden">
           <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold text-blue-600 mb-2">
+                {isLogin ? 'URL Shortener Service' : ''}
+            </h2>
             <h2 className="text-3xl font-bold text-white mb-2">
                 {isLogin ? 'Welcome Back' : 'Create Account'}
             </h2>
@@ -117,6 +127,7 @@ const handleSubmit = async (e) => {
             </button>
           </form>
 
+          {/* Switch between Login and Registration mode */}
           <div className="mt-8 text-center border-t border-slate-800 pt-6">
             <p className="text-slate-400 text-sm">
               {isLogin ? "Don't have an account?" : "Already have an account?"}
