@@ -83,7 +83,7 @@ npm install
 node index.js
 ```
 
-📌 Server runs by default on: `http://localhost:5000`
+📌 Server runs by default on: `http://localhost:5001`
 
 ---
 
