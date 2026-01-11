@@ -34,7 +34,7 @@ const transporter = nodemailer.createTransport({
 
 // 3. Health Check Route
 app.get('/', (req, res) => {
-    res.send("User Shortener API Server is running successfully!");
+    res.send("Url Shortener API Server is running successfully!");
 });
 
 // 4. User Registration Route
@@ -169,7 +169,7 @@ app.delete('/api/delete-link/:id', (req, res) => {
 });
 
 // 10. URL Redirection Handler
-// This must remain at the bottom of the route definitions
+
 app.get('/:short_code', (req, res) => {
     const { short_code } = req.params;
     const sql = "SELECT long_url FROM urls WHERE short_code = ?";
